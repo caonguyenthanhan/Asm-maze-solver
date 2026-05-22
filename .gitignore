@@ -1,0 +1,6 @@
+*.exe
+*.com
+*.obj
+*.lst
+*.map
+MyBuild/
