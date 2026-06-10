@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Maze Solver - Diagrams</title>
+    <style>
+      :root { color-scheme: light; }
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; line-height: 1.45; }
+      h1, h2 { margin: 0 0 10px; }
+      .card { border: 1px solid #ddd; border-radius: 10px; padding: 14px 16px; margin: 12px 0; }
+      .meta { color: #555; font-size: 14px; }
+      a { color: #0b57d0; text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      pre { background: #f6f6f6; padding: 12px; border-radius: 10px; overflow: auto; }
+      code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    </style>
+  </head>
+  <body>
+    <h1>Maze Solver (Win32 NASM) - Diagrams</h1>
+    <div class="meta">
+      See also: <a href="./REPORT_DETAILED.md">REPORT_DETAILED.md</a>
+    </div>
+
+    <div class="card">
+      <h2>Architecture</h2>
+      <pre class="mermaid">flowchart LR
+  main[main.asm\nIntegration] --> ui[UI/ui.asm\nConsole UI]
+  main --> io[IO/file.asm\nFile I/O]
+  main --> core[core/core.asm\nDFS + Generator]
+  core --> ui
+  io --> main
+      </pre>
+    </div>
+
+    <div class="card">
+      <h2>Execution Flow</h2>
+      <pre class="mermaid">flowchart TD
+  A[Start] --> B[Mode Menu]
+  B --> C[Speed Menu]
+  C --> D[Display Menu]
+  D --> E{Random or File}
+  E -->|File| F[FILE_ReadMaze]
+  E -->|Random| G[MAIN_GenerateRandomMaze]
+  F --> H[MAIN_FindStart]
+  G --> H
+  H --> I[MAIN_DrawFullMaze]
+  I --> J[MAIN_PrintLegend]
+  J --> K[DFS_Solve]
+  K --> L[Done]
+      </pre>
+    </div>
+
+    <div class="card">
+      <h2>DFS Loop (Simplified)</h2>
+      <pre class="mermaid">flowchart TD
+  L0[stack_top == 0 ?] -->|yes| END[Return]
+  L0 -->|no| POP[DFS_Pop -> (x,y)]
+  POP --> CELL[Read maze cell]
+  CELL -->|E| FOUND[Stop]
+  CELL -->|Wall/Visited| L0
+  CELL -->|Path/S| MARK[Mark visited 'V']
+  MARK --> STATUS[Update status line]
+  STATUS --> DRAW[Draw @ and maybe *]
+  DRAW --> N1[Push neighbors R,D,L,U if valid]
+  N1 --> L0
+      </pre>
+    </div>
+
+    <div class="card">
+      <h2>Code Evidence</h2>
+      <div class="meta">Links open in the IDE if supported.</div>
+      <ul>
+        <li><a href="file:///d:/desktop/KienTrucMayTinh-HopNgu/New%20folder/doan/Asm-maze-solver-win32-nasm/main.asm#L293-L329">main.asm: load/draw/solve wiring</a></li>
+        <li><a href="file:///d:/desktop/KienTrucMayTinh-HopNgu/New%20folder/doan/Asm-maze-solver-win32-nasm/main.asm#L358-L423">main.asm: colored legend printer</a></li>
+        <li><a href="file:///d:/desktop/KienTrucMayTinh-HopNgu/New%20folder/doan/Asm-maze-solver-win32-nasm/core/core.asm#L223-L451">core.asm: DFS + status update</a></li>
+        <li><a href="file:///d:/desktop/KienTrucMayTinh-HopNgu/New%20folder/doan/Asm-maze-solver-win32-nasm/UI/ui.asm#L62-L333">ui.asm: ClearLine + colors + decimal print</a></li>
+      </ul>
+    </div>
+
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "default" });
+    </script>
+  </body>
+</html>

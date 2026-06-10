@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Báo cáo Maze Solver (Win32 NASM) - Dạng Blog</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #ffffff;
+        --fg: #111827;
+        --muted: #6b7280;
+        --border: #e5e7eb;
+        --card: #f9fafb;
+        --link: #0b57d0;
+        --code-bg: #0b1020;
+        --code-fg: #e5e7eb;
+        --chip: #eef2ff;
+        --chip-fg: #3730a3;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        line-height: 1.55;
+      }
+      .wrap {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 28px 18px 72px;
+      }
+      header {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 18px 18px 14px;
+        background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
+      }
+      h1 {
+        margin: 0 0 6px;
+        font-size: 28px;
+        letter-spacing: -0.02em;
+      }
+      .subtitle {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .chips {
+        margin-top: 12px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .chip {
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: var(--chip);
+        color: var(--chip-fg);
+        font-size: 12px;
+        border: 1px solid #e0e7ff;
+        white-space: nowrap;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 14px;
+        margin-top: 14px;
+      }
+      @media (max-width: 980px) {
+        .grid { grid-template-columns: 1fr; }
+      }
+      nav {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 14px 14px 10px;
+        background: #fff;
+        position: sticky;
+        top: 14px;
+        align-self: start;
+      }
+      nav h2 {
+        margin: 0 0 10px;
+        font-size: 14px;
+        color: #111827;
+      }
+      nav a {
+        display: block;
+        padding: 6px 8px;
+        border-radius: 10px;
+        text-decoration: none;
+        color: #111827;
+        font-size: 13px;
+      }
+      nav a:hover { background: #f3f4f6; }
+      nav .meta {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 12px;
+      }
+      section {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 16px 16px 14px;
+        background: #fff;
+        margin-bottom: 14px;
+      }
+      section h2 {
+        margin: 0 0 8px;
+        font-size: 18px;
+        letter-spacing: -0.01em;
+      }
+      section h3 {
+        margin: 14px 0 8px;
+        font-size: 15px;
+      }
+      p { margin: 8px 0; }
+      ul { margin: 8px 0 8px 18px; }
+      li { margin: 4px 0; }
+      a { color: var(--link); }
+      .callout {
+        border: 1px solid var(--border);
+        background: var(--card);
+        border-radius: 14px;
+        padding: 12px 12px 10px;
+        margin: 10px 0;
+      }
+      .callout strong { display: inline-block; margin-bottom: 4px; }
+      pre {
+        margin: 10px 0;
+        padding: 12px;
+        border-radius: 14px;
+        background: var(--code-bg);
+        color: var(--code-fg);
+        overflow: auto;
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 12.5px;
+      }
+      .two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      @media (max-width: 980px) {
+        .two-col { grid-template-columns: 1fr; }
+      }
+      .kbd {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 12px;
+        border: 1px solid var(--border);
+        background: #fff;
+        padding: 1px 6px;
+        border-radius: 8px;
+        color: #111827;
+      }
+      .hr {
+        height: 1px;
+        background: var(--border);
+        margin: 12px 0;
+      }
+      .small { font-size: 13px; color: var(--muted); }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Báo cáo dự án: AI giải mê cung (Maze Solver) bằng DFS</h1>
+        <p class="subtitle">Win32 32-bit · NASM + WinAPI Console · Có menu độ khó/tốc độ/hiển thị · Có minh hoạ Mermaid</p>
+        <div class="chips">
+          <span class="chip">maze_solver.exe</span>
+          <span class="chip">DFS (software stack)</span>
+          <span class="chip">Random maze solvable</span>
+          <span class="chip">Console colors</span>
+          <span class="chip">Display modes</span>
+        </div>
+      </header>
+
+      <div class="grid">
+        <nav>
+          <button id="toggleNav" style="width: 100%; padding: 8px; background: none; border: 1px solid var(--border); border-radius: 8px; text-align: left; cursor: pointer; margin-bottom: 10px;">☰ Mục lục (Ẩn/Hiện)</button>
+          <div id="navContent">
+            <h2>Mục lục</h2>
+            <a href="#tom-tat">1. Tóm tắt</a>
+            <a href="#muc-tieu">2. Mục tiêu & phạm vi</a>
+            <a href="#cong-nghe">3. Công nghệ & build</a>
+            <a href="#kien-truc">4. Kiến trúc hệ thống</a>
+            <a href="#du-lieu">5. Mô hình dữ liệu</a>
+            <a href="#ui">6. UI Console (WinAPI)</a>
+            <a href="#io">7. Đọc file mê cung</a>
+            <a href="#dfs">8. Thuật toán DFS</a>
+            <a href="#random">9. Sinh mê cung ngẫu nhiên</a>
+            <a href="#demo">10. Kịch bản demo cho giảng viên</a>
+            <a href="#ket-qua">11. Kết quả & hạn chế</a>
+            <a href="#tai-lieu">12. Tài liệu tham chiếu</a>
+            <div class="meta">
+              <div><b>Thư mục:</b> Asm-maze-solver-win32-nasm/reports</div>
+              <div><b>Liên kết:</b> <a href="./REPORT_OVERVIEW.md">REPORT_OVERVIEW.md</a></div>
+              <div><b>Sơ đồ:</b> <a href="./REPORT_DIAGRAMS.html">REPORT_DIAGRAMS.html</a></div>
+              <div><b>Chi tiết:</b> <a href="./REPORT_DETAILED.md">REPORT_DETAILED.md</a></div>
+            </div>
+          </div>
+        </nav>
+
+        <script>
+          // Toggle navigation visibility functionality
+          const toggleBtn = document.getElementById('toggleNav');
+          const navContent = document.getElementById('navContent');
+          let isNavVisible = true;
+
+          toggleBtn.addEventListener('click', () => {
+            isNavVisible = !isNavVisible;
+            navContent.style.display = isNavVisible ? 'block' : 'none';
+            toggleBtn.textContent = isNavVisible ? '☰ Mục lục (Ẩn/Hiện)' : '☰ Mục lục (Đã ẩn - Click để hiện)';
+          });
+        </script>
+
+        <main>
+          <section id="tom-tat">
+            <h2>1) Tóm tắt</h2>
+            <p>Dự án xây dựng một chương trình console trên Windows để đọc hoặc tự sinh mê cung và dùng DFS để tìm đường từ <span class="kbd">S</span> tới <span class="kbd">E</span>. Chương trình hỗ trợ:</p>
+            <ul>
+              <li>Chọn độ khó (10×10, 20×20, 30×30)</li>
+              <li>Chọn tốc độ animation</li>
+              <li>Chọn chế độ hiển thị (giảm “rối” khi vẽ visited)</li>
+              <li>Hiển thị màu và status line <span class="kbd">Step/X/Y</span> như “debug log”</li>
+            </ul>
+            <div class="callout">
+              <strong>Điểm nhấn báo cáo</strong>
+              <div>Chương trình được chia module (SV1/UI, SV2/IO, SV3/Core) và có luồng demo rõ ràng; phần xử lý thanh ghi/calling convention được dùng làm điểm chứng minh “cấp độ hợp ngữ”.</div>
+            </div>
+          </section>
+
+          <section id="muc-tieu">
+            <h2>2) Mục tiêu & phạm vi</h2>
+            <h3>Mục tiêu</h3>
+            <ul>
+              <li>Xây dựng solver DFS chạy ổn định, không phụ thuộc thư viện ngoài.</li>
+              <li>UI dễ quan sát: có màu, có trạng thái tiến trình, có chế độ hiển thị.</li>
+              <li>Module hoá để mỗi sinh viên báo cáo độc lập.</li>
+            </ul>
+            <h3>Phạm vi</h3>
+            <ul>
+              <li>Nền tảng: Win32 32-bit (PE32), không phải DOS 16-bit.</li>
+              <li>Giao diện: console text (không GUI).</li>
+              <li>Thuật toán: DFS (không tối ưu đường ngắn nhất như BFS/A*).</li>
+            </ul>
+          </section>
+
+          <section id="cong-nghe">
+            <h2>3) Công nghệ & build</h2>
+            <div class="two-col">
+              <div>
+                <h3>Toolchain</h3>
+                <ul>
+                  <li>NASM: <span class="kbd">-f win32</span></li>
+                  <li>GCC 32-bit: <span class="kbd">-m32</span></li>
+                  <li>WinAPI console: WriteConsoleA, SetConsoleCursorPosition, FillConsoleOutput*</li>
+                </ul>
+              </div>
+              <div>
+                <h3>Lệnh build</h3>
+                <pre><code>cd "Asm-maze-solver-win32-nasm"
+.\build.bat
+.\maze_solver.exe</code></pre>
+                <p class="small">Build script: <a href="file:///d:/desktop/KienTrucMayTinh-HopNgu/New%20folder/doan/Asm-maze-solver-win32-nasm/build.bat#L1-L19">build.bat</a></p>
+              </div>
+            </div>
+          </section>
+
+          <section id="kien-truc">
+            <h2>4) Kiến trúc hệ thống</h2>
+            <p>Chương trình chia thành 3 module chính và 1 entrypoint để “wiring”:</p>
+            <ul>
+              <li>SV1/UI: <a href="file:///d:/desktop/KienTrucMayTinh-HopNgu/New%20folder/doan/Asm-maze-solver-win32-nasm/UI/ui.asm">UI/ui.asm</a></li>
+              <li>SV2/IO: <a href="file:///d:/desktop/KienTrucMayTinh-HopNgu/New%20folder/doan/Asm-maze-solver-win32-nasm/IO/file.asm">IO/file.asm</a></li>
+              <li>SV3/Core: <a href="file:///d:/desktop/KienTrucMayTinh-HopNgu/New%20folder/doan/Asm-maze-solver-win32-nasm/core/core.asm">core/core.asm</a></li>
+              <li>Main: <a href="file:///d:/desktop/KienTrucMayTinh-HopNgu/New%20folder/doan/Asm-maze-solver-win32-nasm/main.asm">main.asm</a></li>
+            </ul>
+
+            <h3>Sơ đồ module</h3>
+            <pre class="mermaid">flowchart LR
+  main[main.asm\nIntegration] --> ui[UI/ui.asm\nConsole UI]
+  main --> io[IO/file.asm\nFile I/O]
+  main --> core[core/core.asm\nDFS + Generator]
+  core --> ui
+            </pre>
+
+            <h3>Sơ đồ luồng thực thi</h3>
+            <pre class="mermaid">flowchart TD
+  A[_main] --> B[Menu: Mode]
+  B --> C[Menu: Speed]
+  C --> D[Menu: Display]
+  D --> E{Mode kind}
+  E -->|Load file| F[FILE_ReadMaze]
+  E -->|Random| G[MAIN_GenerateRandomMaze]
+  F --> H[MAIN_FindStart]
+  G --> H
+  H --> I[MAIN_DrawFullMaze]
+  I --> J[MAIN_PrintLegend]
+  J --> K[DFS_Solve]
+  K --> L[Done + WaitKey + ExitProcess]
+            </pre>
+
+            <div class="callout">
+              <strong>Code dẫn chứng</strong>
+              <div>Luồng “load/generate → draw → legend → solve”: <a href="file:///d:/desktop/KienTrucMayTinh-HopNgu/New%20folder/doan/Asm-maze-solver-win32-nasm/main.asm#L293-L329">main.asm:L293-L329</a></div>
+              <div>In legend màu theo ký tự: <a href="file:///d:/desktop/KienTrucMayTinh-HopNgu/New%20folder/doan/Asm-maze-solver-win32-nasm/main.asm#L358-L423">main.asm:L358-L423</a></div>
+            </div>
+          </section>
+
+          <section id="du-lieu">
+            <h2>5) Mô hình dữ liệu</h2>
+            <p>Mê cung lưu trong mảng 1 chiều <span class="kbd">maze</span>, index theo công thức:</p>
+            <pre><code>index = y * cols + x</code></pre>
+            <p>Routine tính index: <a href="file:///d:/desktop/KienTrucMayTinh-HopNgu/New%20folder/doan/Asm-maze-solver-win32-nasm/core/core.asm#L111-L126">MAIN_GetIndex</a></p>
+            <div class="two-col">
+              <div>
+                <h3>Mã hoá cell trong bộ nhớ</h3>
+                <ul>
+                  <li><span class="kbd">'1'</span>: wall</li>
+                  <li><span class="kbd">'0'</span>: path</li>
+                  <li><span class="kbd">'S'</span>: start</li>
+                  <li><span class="kbd">'E'</span>: end</li>
+                  <li><span class="kbd">'V'</span>: visited (DFS nội bộ)</li>
+                </ul>
+              </div>
+              <div>
+                <h3>Mapping khi vẽ lên màn hình</h3>
+                <ul>
+                  <li><span class="kbd">'1'</span> → <span class="kbd">#</span></li>
+                  <li><span class="kbd">'0'</span> → <span class="kbd">.</span></li>
+                  <li><span class="kbd">S/E</span> giữ nguyên</li>
+                </ul>
+              </div>
+            </div>
+
+            <h3>Sơ đồ memory (khái niệm)</h3>
+            <p>Sơ đồ này đang mô tả nhóm biến/array được cấp phát tĩnh trong <span class="kbd">section .data</span> của <a href="file:///d:/desktop/KienTrucMayTinh-HopNgu/New%20folder/doan/Asm-maze-solver-win32-nasm/main.asm#L25-L86">main.asm</a> (ví dụ <span class="kbd">maze</span>, <span class="kbd">stack_x</span>, <span class="kbd">stack_y</span>, <span class="kbd">rows/cols</span>, <span class="kbd">dfs_steps</span>). Core/UI chỉ “dùng chung” các vùng nhớ đó.</p>
+            <pre class="mermaid">flowchart TB
+  subgraph Data [".data (main.asm)"]
+    direction LR
+
+    subgraph Config ["Trạng thái & Cấu hình"]
+      direction TB
+      rows["rows (dd)"]:::k
+      cols["cols (dd)"]:::k
+      delay["ui_delay_ms (dd)"]:::k
+      mode["dfs_display_mode (db)"]:::k
+      steps["dfs_steps (dd)"]:::k
+      st["stack_top (dd)"]:::k
+      currX["currX / currY (dd)"]:::k
+    end
+
+    subgraph Arrays ["Các mảng lưu trữ (1600 bytes)"]
+      direction TB
+      maze["maze (1600 db)"]:::arr
+      maze_work["maze_work (1600 db)"]:::arr
+      stackx["stack_x (1600 db)"]:::arr
+      stacky["stack_y (1600 db)"]:::arr
+    end
+  end
+  
+  classDef k fill:#eef2ff,stroke:#c7d2fe,color:#111827,rx:4,ry:4;
+  classDef arr fill:#ecfeff,stroke:#a5f3fc,color:#111827,rx:4,ry:4;
+            </pre>
+          </section>
+
+          <section id="ui">
+            <h2>6) UI Console (WinAPI)</h2>
+            <h3>WinAPI sử dụng</h3>
+            <ul>
+              <li>In text: WriteConsoleA</li>
+              <li>Đọc phím: ReadConsoleA</li>
+              <li>GotoXY: SetConsoleCursorPosition</li>
+              <li>Clear: FillConsoleOutputCharacterA + FillConsoleOutputAttribute</li>
+              <li>Màu: SetConsoleTextAttribute</li>
+              <li>Animation: Sleep</li>
+            </ul>
+
+            <h3>Vì sao phải “giữ thanh ghi” trong UI</h3>
+            <p>Core DFS dùng <span class="kbd">EBX/ECX</span> làm chỉ số (x/y) và loop. Nếu UI không preserve đúng, giá trị chỉ số bị phá, dẫn đến vẽ sai/hang.</p>
+            <div class="callout">
+              <strong>Code dẫn chứng</strong>
+              <div>UI giữ thanh ghi (push/pop) khi vẽ: <a href="file:///d:/desktop/KienTrucMayTinh-HopNgu/New%20folder/doan/Asm-maze-solver-win32-nasm/UI/ui.asm#L128-L154">UI_DrawChar</a></div>
+            </div>
+
+            <h3>Dọn layout để không “lem chữ”</h3>
+            <p>Để status/legend cập nhật liên tục mà không để lại ký tự thừa, chương trình clear cả dòng trước khi vẽ lại.</p>
+            <pre><code>UI_ClearLine:
+    call _GetConsoleScreenBufferInfo@8
+    movzx ecx, word [ebp-22]
+    movzx eax, word [coord_y]
+    shl eax, 16
+    call _FillConsoleOutputCharacterA@20
+    call _FillConsoleOutputAttribute@20</code></pre>
+            <p class="small">Nguồn: <a href="file:///d:/desktop/KienTrucMayTinh-HopNgu/New%20folder/doan/Asm-maze-solver-win32-nasm/UI/ui.asm#L62-L102">UI_ClearLine</a></p>
+
+            <h3>Status line (debug log)</h3>
+            <p>Mỗi bước DFS update 1 dòng: <span class="kbd">Step:#### X:## Y:##</span>. Dòng này đặt ở hàng <span class="kbd">rows + 3</span> để không đè lên mê cung.</p>
+            <p class="small">Nguồn: <a href="file:///d:/desktop/KienTrucMayTinh-HopNgu/New%20folder/doan/Asm-maze-solver-win32-nasm/core/core.asm#L415-L451">DFS_UpdateStatus</a></p>
+          </section>
+
+          <section id="io">
+            <h2>7) Đọc file mê cung</h2>
+            <p>Chế độ file dùng module IO để đọc <span class="kbd">maze.txt</span>, nạp vào <span class="kbd">maze</span> và cập nhật <span class="kbd">rows/cols</span>.</p>
+            <div class="callout">
+              <strong>Demo module IO</strong>
+              <pre><code>cd "Asm-maze-solver-win32-nasm\IO"
+.\build_io_demo.bat
+.\io_demo.exe</code></pre>
+            </div>
+            <p class="small">File mẫu: <a href="file:///d:/desktop/KienTrucMayTinh-HopNgu/New%20folder/doan/Asm-maze-solver-win32-nasm/maze.txt">maze.txt</a></p>
+          </section>
+
+          <section id="dfs">
+            <h2>8) Thuật toán DFS</h2>
+            <h3>Ý tưởng</h3>
+            <p>DFS duyệt sâu theo 4 hướng. Để không dùng hardware stack cho toàn trạng thái, chương trình dùng “software stack” với 2 mảng <span class="kbd">stack_x/stack_y</span>.</p>
+            <p>Routine chính: <a href="file:///d:/desktop/KienTrucMayTinh-HopNgu/New%20folder/doan/Asm-maze-solver-win32-nasm/core/core.asm#L223-L413">DFS_Solve</a></p>
+
+            <h3>Sơ đồ DFS (rút gọn)</h3>
+            <pre class="mermaid">flowchart TD
+  L0[stack_top == 0 ?] -->|yes| END[Return]
+  L0 -->|no| POP["DFS_Pop -> (x,y)"]
+  POP --> CELL[Read maze cell]
+  CELL -->|E| FOUND[Stop]
+  CELL -->|Wall/Visited| L0
+  CELL -->|Path/S| MARK[Mark visited 'V']
+  MARK --> STATUS[Update status line]
+  STATUS --> DRAW[Draw @ and maybe *]
+  DRAW --> N1[Push neighbors R,D,L,U if valid]
+  N1 --> L0</pre>
+
+            <h3>Chế độ hiển thị (giảm rối)</h3>
+            <p>Display mode giúp giảng viên thấy rõ “cường độ vẽ” khác nhau:</p>
+            <ul>
+              <li>Minimal: chỉ <span class="kbd">@</span> chạy, không để lại <span class="kbd">*</span></li>
+              <li>Normal: chỉ để lại <span class="kbd">*</span> mỗi 4 bước</li>
+              <li>Dense: luôn để lại <span class="kbd">*</span></li>
+            </ul>
+            <pre><code>DFS_Draw:
+    inc dword [dfs_steps]
+    call DFS_UpdateStatus
+    mov al, [dfs_display_mode]
+    cmp al, 0
+    je DFS_DrawMinimal
+    cmp al, 1
+    je DFS_DrawNormal
+    jmp DFS_DrawDense</code></pre>
+            <p class="small">Nguồn: <a href="file:///d:/desktop/KienTrucMayTinh-HopNgu/New%20folder/doan/Asm-maze-solver-win32-nasm/core/core.asm#L260-L270">DFS_Draw selection</a></p>
+
+            <h3>Kiểm tra biên đúng dấu (signed)</h3>
+            <p>Toạ độ có thể âm khi <span class="kbd">dec</span>. Nếu dùng nhảy unsigned sẽ dễ “underflow thành số lớn”. Vì vậy code dùng <span class="kbd">test</span> + <span class="kbd">js</span> để bắt âm.</p>
+            <p class="small">Nguồn: <a href="file:///d:/desktop/KienTrucMayTinh-HopNgu/New%20folder/doan/Asm-maze-solver-win32-nasm/core/core.asm#L128-L169">MAIN_IsValid</a></p>
+          </section>
+
+          <section id="random">
+            <h2>9) Sinh mê cung ngẫu nhiên</h2>
+            <p>Chế độ random có đảm bảo tồn tại đường đi bằng cách: (1) fill tường toàn bộ, (2) carve một path từ (1,1) đến (cols-2,rows-2), (3) mở thêm ngẫu nhiên một số ô.</p>
+            <pre class="mermaid">flowchart TD
+  A[Fill all '1'] --> B[Carve guaranteed path '0']
+  B --> C[Randomly open remaining walls]
+  C --> D["Write 'S' at (1,1)"]
+  D --> E["Write 'E' at (cols-2,rows-2)"]
+            </pre>
+            <p class="small">Nguồn: <a href="file:///d:/desktop/KienTrucMayTinh-HopNgu/New%20folder/doan/Asm-maze-solver-win32-nasm/core/core.asm#L469-L611">MAIN_GenerateRandomMaze</a></p>
+          </section>
+
+          <section id="demo">
+            <h2>10) Kịch bản demo cho giảng viên</h2>
+            <h3>Demo 1: UI/Hiển thị</h3>
+            <ul>
+              <li>Chạy chương trình, chọn <span class="kbd">Mode</span> random, chọn <span class="kbd">Speed</span> và <span class="kbd">Display</span>.</li>
+              <li>Giải thích legend có màu và status line Step/X/Y.</li>
+            </ul>
+            <h3>Demo 2: “Cấp độ thanh ghi”</h3>
+            <ul>
+              <li>Chỉ ra core giữ x/y trong EBX/ECX, UI phải preserve để không phá vòng lặp.</li>
+              <li>Giải thích side-effect của <span class="kbd">MUL</span> với <span class="kbd">EDX:EAX</span>.</li>
+              <li>Giải thích signed boundary dùng <span class="kbd">js</span>.</li>
+            </ul>
+            <h3>Demo 3: Module hoá</h3>
+            <ul>
+              <li>SV1 demo UI module: build/run ui_demo.exe.</li>
+              <li>SV2 demo IO module: build/run io_demo.exe.</li>
+              <li>SV3 demo core module: build/run core_demo.exe.</li>
+            </ul>
+            <div class="callout">
+              <strong>Gợi ý cấu hình để “đỡ loạn”</strong>
+              <div>Display = Minimal/Normal, Speed = Normal/Fast.</div>
+              <div class="small">Dense + Slow chủ yếu dùng để chứng minh animation “nặng” và ảnh hưởng khả năng quan sát.</div>
+            </div>
+          </section>
+
+          <section id="ket-qua">
+            <h2>11) Kết quả & hạn chế</h2>
+            <h3>Kết quả</h3>
+            <ul>
+              <li>Chạy ổn định, có menu độ khó/tốc độ/chế độ hiển thị.</li>
+              <li>UI rõ ràng: màu + legend gọn + status line.</li>
+              <li>Module hoá phù hợp báo cáo nhóm.</li>
+            </ul>
+            <h3>Hạn chế</h3>
+            <ul>
+              <li>DFS không đảm bảo đường đi ngắn nhất.</li>
+              <li>Chưa có “highlight đường nghiệm cuối” (backtracking path) để trình diễn đẹp hơn.</li>
+              <li>Bản Win32 không chạy trên emu8086 (khác nền tảng).</li>
+            </ul>
+          </section>
+
+          <section id="tai-lieu">
+            <h2>12) Tài liệu tham chiếu</h2>
+            <ul>
+              <li>Main integration: <a href="file:///d:/desktop/KienTrucMayTinh-HopNgu/New%20folder/doan/Asm-maze-solver-win32-nasm/main.asm">main.asm</a></li>
+              <li>UI module: <a href="file:///d:/desktop/KienTrucMayTinh-HopNgu/New%20folder/doan/Asm-maze-solver-win32-nasm/UI/ui.asm">UI/ui.asm</a></li>
+              <li>Core module: <a href="file:///d:/desktop/KienTrucMayTinh-HopNgu/New%20folder/doan/Asm-maze-solver-win32-nasm/core/core.asm">core/core.asm</a></li>
+              <li>IO module: <a href="file:///d:/desktop/KienTrucMayTinh-HopNgu/New%20folder/doan/Asm-maze-solver-win32-nasm/IO/file.asm">IO/file.asm</a></li>
+              <li>Diagram page: <a href="./REPORT_DIAGRAMS.html">REPORT_DIAGRAMS.html</a></li>
+              <li>Detailed markdown: <a href="./REPORT_DETAILED.md">REPORT_DETAILED.md</a></li>
+            </ul>
+            <div class="hr"></div>
+            <p class="small">Nếu trình duyệt chặn file:// links, hãy mở file trong IDE để click trực tiếp các đường dẫn code.</p>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "default" });
+    </script>
+  </body>
+</html>
