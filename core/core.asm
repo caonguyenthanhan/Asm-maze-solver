@@ -189,6 +189,112 @@ MAIN_IsValidDone:
     leave
     ret
 
+MAIN_ValidateMaze:
+    push ebp
+    mov ebp, esp
+    push eax
+    push ebx
+    push ecx
+    push edx
+    push esi
+    push edi
+
+    mov dword [errorCode], 0
+
+    mov eax, [cols]
+    imul eax, dword [rows]
+    cmp eax, 1600
+    jbe MAIN_ValidateSizeOk
+    mov dword [errorCode], 6
+    xor eax, eax
+    jmp MAIN_ValidateDone
+
+MAIN_ValidateSizeOk:
+    mov esi, maze
+    xor edi, edi
+    xor edx, edx
+    xor ecx, ecx
+
+MAIN_ValidateRow:
+    cmp ecx, [rows]
+    jae MAIN_ValidateCounts
+    xor ebx, ebx
+
+MAIN_ValidateCol:
+    cmp ebx, [cols]
+    jae MAIN_ValidateNextRow
+    mov al, [esi]
+
+    cmp al, '0'
+    je MAIN_ValidateCharOk
+    cmp al, '1'
+    je MAIN_ValidateCharOk
+    cmp al, ' '
+    je MAIN_ValidateCharOk
+    cmp al, 'S'
+    je MAIN_ValidateCharS
+    cmp al, 'E'
+    je MAIN_ValidateCharE
+    mov dword [errorCode], 3
+    xor eax, eax
+    jmp MAIN_ValidateDone
+
+MAIN_ValidateCharS:
+    inc edi
+    mov [startX], ebx
+    mov [startY], ecx
+    jmp MAIN_ValidateCharOk
+
+MAIN_ValidateCharE:
+    inc edx
+    mov [endX], ebx
+    mov [endY], ecx
+
+MAIN_ValidateCharOk:
+    inc esi
+    inc ebx
+    jmp MAIN_ValidateCol
+
+MAIN_ValidateNextRow:
+    inc ecx
+    jmp MAIN_ValidateRow
+
+MAIN_ValidateCounts:
+    test edi, edi
+    jz MAIN_ValidateNoS
+    cmp edi, 1
+    jne MAIN_ValidateBadFormat
+    test edx, edx
+    jz MAIN_ValidateNoE
+    cmp edx, 1
+    jne MAIN_ValidateBadFormat
+    mov eax, 1
+    jmp MAIN_ValidateDone
+
+MAIN_ValidateNoS:
+    mov dword [errorCode], 4
+    xor eax, eax
+    jmp MAIN_ValidateDone
+
+MAIN_ValidateNoE:
+    mov dword [errorCode], 5
+    xor eax, eax
+    jmp MAIN_ValidateDone
+
+MAIN_ValidateBadFormat:
+    mov dword [errorCode], 3
+    xor eax, eax
+
+MAIN_ValidateDone:
+    pop edi
+    pop esi
+    pop edx
+    pop ecx
+    pop ebx
+    pop eax
+    leave
+    ret
+
 DFS_Push:
     push ebp
     mov ebp, esp
@@ -230,6 +336,8 @@ DFS_Solve:
     push esi
     push edi
 
+    mov byte [dfs_result], 0
+    mov dword [cells_examined], 0
     mov dword [stack_top], 0
     mov ebx, [currX]
     mov ecx, [currY]
@@ -254,8 +362,9 @@ DFS_Loop:
     je DFS_Loop
     cmp al, '1'
     je DFS_Loop
-    mov ah, al
+    mov [dfs_prev_char], al
     mov byte [esi], 'V'
+    inc dword [cells_examined]
 
 DFS_Draw:
     inc dword [dfs_steps]
@@ -270,7 +379,7 @@ DFS_Draw:
     jmp DFS_DrawDense
 
 DFS_DrawMinimal:
-    mov al, ah
+    mov al, [dfs_prev_char]
     cmp al, 'S'
     je DFS_DrawS_Min
     mov eax, 11
@@ -278,7 +387,7 @@ DFS_DrawMinimal:
     mov al, '@'
     call UI_DrawCell
     call UI_ResetColor
-    mov al, ah
+    mov al, [dfs_prev_char]
     cmp al, ' '
     je DFS_MinRestoreSpace
     mov al, '.'
@@ -297,7 +406,7 @@ DFS_DrawS_Min:
     jmp DFS_AfterDraw
 
 DFS_DrawNormal:
-    mov al, ah
+    mov al, [dfs_prev_char]
     cmp al, 'S'
     je DFS_DrawS_Norm
     mov eax, 11
@@ -315,7 +424,7 @@ DFS_DrawNormal:
     call UI_ResetColor
     jmp DFS_AfterDraw
 DFS_NormRestore:
-    mov al, ah
+    mov al, [dfs_prev_char]
     cmp al, ' '
     je DFS_NormRestoreSpace
     mov al, '.'
@@ -334,7 +443,7 @@ DFS_DrawS_Norm:
     jmp DFS_AfterDraw
 
 DFS_DrawDense:
-    mov al, ah
+    mov al, [dfs_prev_char]
     cmp al, 'S'
     je DFS_DrawS_Dense
     mov eax, 11
@@ -393,6 +502,7 @@ DFS_TryUp:
     jmp DFS_Loop
 
 DFS_Found:
+    mov byte [dfs_result], 1
     mov [coord_x], bx
     mov [coord_y], cx
     mov eax, 12

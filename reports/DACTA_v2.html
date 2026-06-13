@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Đặc tả - ASM Maze Solver (NASM Win32)</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  :root{
+    --ink:#1a2233; --muted:#5b6678; --line:#d8dee9; --accent:#2563eb;
+    --bg:#ffffff; --soft:#f5f7fb; --code:#eef2f7; --ok:#15803d; --warn:#b45309;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-print-color-adjust:exact; print-color-adjust:exact;}
+  body{
+    font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;
+    color:var(--ink); background:var(--soft); margin:0; line-height:1.6;
+    font-size:15px;
+  }
+  .page{max-width:980px; margin:0 auto; background:var(--bg); padding:48px 56px;
+    box-shadow:0 1px 16px rgba(20,30,60,.08);}
+  header.cover{text-align:center; padding:40px 0 28px; border-bottom:3px solid var(--accent); margin-bottom:32px;}
+  header.cover .eyebrow{color:var(--accent); font-weight:700; letter-spacing:.14em; font-size:12px; text-transform:uppercase;}
+  header.cover h1{font-size:30px; margin:12px 0 6px;}
+  header.cover .sub{color:var(--muted); font-size:15px;}
+  header.cover .meta{margin-top:18px; font-size:13px; color:var(--muted);}
+  h2{font-size:21px; margin:34px 0 12px; padding-bottom:7px; border-bottom:2px solid var(--line); color:var(--ink);}
+  h3{font-size:16px; margin:22px 0 8px; color:var(--accent);}
+  h4{font-size:14px; margin:16px 0 6px; color:var(--muted);}
+  p{margin:8px 0;}
+  table{border-collapse:collapse; width:100%; margin:12px 0; font-size:13.5px;}
+  th,td{border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top;}
+  th{background:var(--soft); font-weight:700;}
+  tr:nth-child(even) td{background:#fafbfd;}
+  code{background:var(--code); padding:1px 6px; border-radius:4px; font-family:"Cascadia Code","Consolas",monospace; font-size:12.5px;}
+  pre{background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; font-size:12.5px; line-height:1.5;}
+  pre code{background:none; color:inherit; padding:0;}
+  .ok{color:var(--ok); font-weight:700;}
+  .warn{color:var(--warn); font-weight:700;}
+  blockquote{border-left:4px solid var(--accent); background:var(--soft); margin:12px 0; padding:8px 16px; color:var(--muted); font-size:13.5px;}
+  .diagram{background:#fff; border:1px solid var(--line); border-radius:10px; padding:18px; margin:14px 0; text-align:center;}
+  .diagram .mermaid{display:flex; justify-content:center;}
+  .toc{background:var(--soft); border:1px solid var(--line); border-radius:10px; padding:18px 24px; margin:18px 0;}
+  .toc h3{margin-top:0;}
+  .toc ol{margin:6px 0; padding-left:22px;}
+  .toc a{color:var(--ink); text-decoration:none;}
+  .toc a:hover{color:var(--accent);}
+  .legend-chip{display:inline-block; width:18px; text-align:center; border-radius:3px; font-weight:700; margin-right:6px;}
+  footer{margin-top:40px; padding-top:16px; border-top:1px solid var(--line); color:var(--muted); font-size:12px; text-align:center;}
+  .print-hint{background:#eef6ff; border:1px solid #bcd9ff; border-radius:8px; padding:12px 16px; margin:16px 0; font-size:13px; color:#1e40af;}
+  @media print{
+    body{background:#fff; font-size:12px;}
+    .page{box-shadow:none; max-width:none; padding:0 8mm;}
+    .print-hint{display:none;}
+    h2{page-break-after:avoid;}
+    table,.diagram,pre,blockquote{page-break-inside:avoid;}
+    h2,h3{page-break-after:avoid;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="cover">
+  <div class="eyebrow">KTMT &amp; HN — Lab 08</div>
+  <h1>ASM Maze Solver — NASM Win32</h1>
+  <div class="sub">Đặc tả kỹ thuật (bản cập nhật theo hệ thống thực tế)</div>
+  <div class="meta">AI giải mê cung bằng thuật toán DFS · Hợp ngữ NASM 32-bit · Windows Console</div>
+</header>
+
+<div class="print-hint">
+  💡 Để xuất PDF: nhấn <b>Ctrl + P</b> → chọn <b>Save as PDF</b> → khổ A4, bật <b>Background graphics</b>. Chờ các sơ đồ render xong rồi mới in.
+</div>
+
+<nav class="toc">
+  <h3>Mục lục</h3>
+  <ol>
+    <li><a href="#s1">Giới thiệu đồ án</a></li>
+    <li><a href="#s2">Tổng quan hệ thống</a></li>
+    <li><a href="#s3">Môi trường thực hiện</a></li>
+    <li><a href="#s4">Kiến thức môn học áp dụng</a></li>
+    <li><a href="#s5">Yêu cầu chức năng</a></li>
+    <li><a href="#s6">Yêu cầu phi chức năng</a></li>
+    <li><a href="#s7">Bảng mã lỗi (errorCode)</a></li>
+    <li><a href="#s8">Thiết kế giao diện</a></li>
+    <li><a href="#s9">Luồng xử lý tổng quát</a></li>
+    <li><a href="#s10">Thiết kế Module</a></li>
+    <li><a href="#s11">Biến toàn cục</a></li>
+    <li><a href="#s12">Khác biệt so với đặc tả gốc</a></li>
+    <li><a href="#s13">Build &amp; chạy</a></li>
+    <li><a href="#s14">Sơ đồ bổ sung (Mermaid)</a></li>
+  </ol>
+</nav>
+
+<h2 id="s1">1. Giới thiệu đồ án</h2>
+<p>Chương trình mô phỏng trò chơi mê cung chạy trên Windows Console, lập trình hoàn toàn bằng Assembly (NASM, 32-bit). Hệ thống có menu chức năng, cho phép nạp cấu trúc mê cung từ file văn bản (.txt) hoặc sinh mê cung ngẫu nhiên.</p>
+<p>Điểm nhấn kỹ thuật là AI tự động tìm đường từ điểm bắt đầu (S) đến đích (E) bằng thuật toán <b>Duyệt theo chiều sâu (DFS – Depth-First Search)</b>, dùng ngăn xếp phần mềm (<code>stack_x</code>/<code>stack_y</code>) để dò đường, đánh dấu ô đã thăm (<code>V</code>) và tự quay lui khi gặp ngõ cụt. Quá trình giải hiển thị theo từng bước (animation) với màu sắc.</p>
+
+<h2 id="s2">2. Tổng quan hệ thống</h2>
+<p>Hệ thống chia 3 module, tích hợp qua <code>main.asm</code> bằng <code>%include</code>:</p>
+<ul>
+  <li><b>UI (<code>UI/ui.asm</code>):</b> Render console, di chuyển con trỏ, đặt màu, đọc phím, in chuỗi/số.</li>
+  <li><b>File I/O (<code>IO/file.asm</code>):</b> Mở/đọc file, bỏ BOM, chuẩn hóa CR/LF, tự xác định số dòng/cột, phát hiện lỗi đọc cơ bản.</li>
+  <li><b>Core (<code>core/core.asm</code>):</b> Validate mê cung, tìm S/E, thuật toán DFS, sinh mê cung ngẫu nhiên, đếm thống kê.</li>
+</ul>
+<p><code>main.asm</code> chứa <code>_main</code>, toàn bộ chuỗi <code>.data</code>, menu và các màn hình.</p>
+
+<h2 id="s3">3. Môi trường thực hiện</h2>
+<table>
+  <tr><th>Hạng mục</th><th>Chi tiết</th></tr>
+  <tr><td>Nền tảng</td><td>Windows Console</td></tr>
+  <tr><td>Biên dịch</td><td><code>nasm -f win32 main.asm -o main.o</code></td></tr>
+  <tr><td>Liên kết</td><td><code>gcc -m32 main.o -o maze_solver.exe -lkernel32</code></td></tr>
+  <tr><td>Script</td><td><code>build.bat</code> (tự động 2 bước trên)</td></tr>
+  <tr><td>Build target</td><td>Chỉ <code>main.asm</code> (các module được include)</td></tr>
+</table>
+
+<h2 id="s4">4. Kiến thức môn học áp dụng</h2>
+<table>
+  <tr><th>Nhóm kiến thức</th><th>Áp dụng thực tế</th></tr>
+  <tr><td><b>Thanh ghi CPU</b></td><td>EAX: giá trị trả về (success/fail, errorCode). EBX/ECX: chỉ số cột/dòng. EDX/EDI: tọa độ tạm trong DFS. ESI: con trỏ duyệt <code>maze</code>. ESP/EBP: khung stack <code>push ebp/mov ebp,esp ... leave/ret</code>.</td></tr>
+  <tr><td><b>Vùng .data/.bss/.text</b></td><td>.data: chuỗi menu/hướng dẫn/lỗi, mảng <code>maze</code>, <code>stack_x/y</code>, biến trạng thái. .bss: <code>file_size</code>, <code>file_handle</code>, <code>bytes_read</code>. .text: các thủ tục.</td></tr>
+  <tr><td><b>MOV, LEA, PUSH, POP</b></td><td>MOV nạp/ghi biến và ký tự ra màn hình. PUSH/POP truyền tham số WinAPI (stdcall) và bảo toàn thanh ghi.</td></tr>
+  <tr><td><b>ADD, SUB, INC, DEC, MUL/IMUL</b></td><td>INC/DEC chỉ số vòng lặp và con trỏ. MUL tính <code>index = row*cols + col</code>. IMUL trong LCG sinh ngẫu nhiên.</td></tr>
+  <tr><td><b>CMP + nhảy</b></td><td>So sánh phím menu, kiểm tra biên mê cung, phân loại ô, rẽ nhánh errorCode.</td></tr>
+  <tr><td><b>Vòng lặp</b></td><td>In menu, duyệt ký tự file, validate, vẽ mê cung, vòng lặp DFS.</td></tr>
+  <tr><td><b>Stack &amp; calling convention</b></td><td>WinAPI stdcall tự dọn stack; chương trình PUSH đúng thứ tự tham số.</td></tr>
+  <tr><td><b>File I/O</b></td><td><code>CreateFileA</code>/<code>ReadFile</code>/<code>CloseHandle</code>; xử lý lỗi mở file, file rỗng, dòng không đều.</td></tr>
+  <tr><td><b>Thuật toán DFS</b></td><td>Từ S thử 4 hướng, đẩy software stack, đánh dấu <code>V</code>, quay lui khi cụt, dừng khi gặp E.</td></tr>
+  <tr><td><b>Mảng 1D mô phỏng 2D</b></td><td><code>maze</code> là mảng byte <code>cols*rows</code>; truy cập ô qua <code>row*cols+col</code>.</td></tr>
+</table>
+
+<h2 id="s5">5. Yêu cầu chức năng (đã triển khai)</h2>
+<table>
+  <tr><th>Mã</th><th>Tên</th><th>Trạng thái</th><th>Ghi chú</th></tr>
+  <tr><td>FR-01</td><td>Hiển thị menu chính</td><td class="ok">✔</td><td>6 mục + tiêu đề</td></tr>
+  <tr><td>FR-02</td><td>Nhận &amp; kiểm tra lựa chọn</td><td class="ok">✔</td><td>Phím sai → báo lỗi, không thoát</td></tr>
+  <tr><td>FR-03</td><td>Xem hướng dẫn</td><td class="ok">✔</td><td>Màn <code>show_help</code></td></tr>
+  <tr><td>FR-04</td><td>Chọn/đọc file</td><td class="ok">✔</td><td>Mặc định <code>maze.txt</code> hoặc nhập tên</td></tr>
+  <tr><td>FR-04.1</td><td>Xác định kích thước</td><td class="ok">✔</td><td>Tự đếm <code>rows</code>/<code>cols</code></td></tr>
+  <tr><td>FR-04.2</td><td>Tìm S và E</td><td class="ok">✔</td><td><code>MAIN_ValidateMaze</code> lưu tọa độ</td></tr>
+  <tr><td>FR-04.3</td><td>Đóng file</td><td class="ok">✔</td><td><code>CloseHandle</code> ngay sau đọc</td></tr>
+  <tr><td>FR-05</td><td>Vẽ mê cung</td><td class="ok">✔</td><td><code>MAIN_DrawFullMaze</code> + legend</td></tr>
+  <tr><td>FR-06</td><td>Chạy DFS tự động</td><td class="ok">✔</td><td><code>DFS_Solve</code></td></tr>
+  <tr><td>FR-07</td><td>Hoạt ảnh từng bước</td><td class="ok">✔</td><td><code>UI_DrawCell</code> + <code>Sleep</code></td></tr>
+  <tr><td>FR-08</td><td>Hiển thị thống kê</td><td class="ok">✔</td><td>Found/Not-found + bước + ô đã xét</td></tr>
+  <tr><td>FR-09</td><td>Xử lý lỗi giao diện</td><td class="ok">✔</td><td>7 mã lỗi (Mục 7)</td></tr>
+  <tr><td>FR-10</td><td>Thoát chương trình</td><td class="ok">✔</td><td>Menu mục 5 / kết quả mục 3</td></tr>
+  <tr><td>FR-11</td><td>Tùy chọn tốc độ</td><td class="ok">✔</td><td>Slow/Normal/Fast</td></tr>
+  <tr><td>FR-12</td><td>Sinh mê cung ngẫu nhiên (bonus)</td><td class="ok">✔</td><td>Easy/Medium/Hard</td></tr>
+</table>
+<p><b>Ngoài phạm vi:</b> đếm số lần quay lui &amp; đo thời gian; ký hiệu <code>x</code> quay lui; khung viền <code>+===+</code> đầy đủ.</p>
+
+<h2 id="s6">6. Yêu cầu phi chức năng</h2>
+<table>
+  <tr><th>Mã</th><th>Yêu cầu</th><th>Trạng thái</th></tr>
+  <tr><td>NFR-01</td><td>Build <code>nasm -f win32</code> + <code>gcc -m32</code></td><td class="ok">✔</td></tr>
+  <tr><td>NFR-02</td><td>Giao diện ASCII, hạn chế Unicode</td><td class="ok">✔</td></tr>
+  <tr><td>NFR-03</td><td>Không treo khi nhập sai; DFS không lặp vô hạn</td><td class="ok">✔</td></tr>
+  <tr><td>NFR-04</td><td>Tách module UI / IO / Core</td><td class="ok">✔</td></tr>
+  <tr><td>NFR-05</td><td>Thủ tục bảo toàn thanh ghi</td><td class="ok">✔</td></tr>
+  <tr><td>NFR-06</td><td>Validate dữ liệu trước khi chạy DFS</td><td class="ok">✔</td></tr>
+  <tr><td>NFR-07</td><td>Giới hạn bộ nhớ <code>cols*rows ≤ 1600</code></td><td class="ok">✔</td></tr>
+  <tr><td>NFR-08</td><td>Chỉ đọc file, không ghi/sửa</td><td class="ok">✔</td></tr>
+</table>
+
+<h2 id="s7">7. Bảng mã lỗi (errorCode) — FR-09</h2>
+<table>
+  <tr><th>Mã</th><th>Hằng</th><th>Nguồn</th><th>Thông báo</th></tr>
+  <tr><td>0</td><td>—</td><td>—</td><td>Hợp lệ, cho phép chạy DFS</td></tr>
+  <tr><td>1</td><td><code>err_1</code></td><td>FILE_ReadMaze (mở file thất bại)</td><td>Khong tim thay file me cung.</td></tr>
+  <tr><td>2</td><td><code>err_2</code></td><td>FILE_ReadMaze (file_size = 0)</td><td>File me cung rong.</td></tr>
+  <tr><td>3</td><td><code>err_3</code></td><td>MAIN_ValidateMaze (ký tự lạ)</td><td>File me cung sai dinh dang.</td></tr>
+  <tr><td>4</td><td><code>err_4</code></td><td>MAIN_ValidateMaze (không có S)</td><td>Khong tim thay diem bat dau S.</td></tr>
+  <tr><td>5</td><td><code>err_5</code></td><td>MAIN_ValidateMaze (không có E)</td><td>Khong tim thay diem ket thuc E.</td></tr>
+  <tr><td>6</td><td><code>err_6</code></td><td>MAIN_ValidateMaze (cols*rows &gt; 1600)</td><td>Me cung vuot qua kich thuoc cho phep.</td></tr>
+  <tr><td>7</td><td><code>err_7</code></td><td>FILE_ReadMaze (dòng không đều)</td><td>Cau truc me cung khong hop le.</td></tr>
+</table>
+<blockquote>Ký tự hợp lệ: <code>'0' '1' 'S' 'E' ' '</code>. Mọi ký tự khác ⇒ errorCode 3.</blockquote>
+
+<h2 id="s8">8. Thiết kế giao diện</h2>
+<h3>8.1. Quy ước ký hiệu (thực tế)</h3>
+<table>
+  <tr><th>Ký hiệu</th><th>Màu</th><th>Ý nghĩa</th></tr>
+  <tr><td><span class="legend-chip" style="background:#444;color:#fff">#</span></td><td>xám</td><td>Tường (<code>'1'</code> → <code>#</code>)</td></tr>
+  <tr><td><span class="legend-chip" style="background:#eee;color:#333">.</span></td><td>trắng</td><td>Đường trống (<code>'0'</code> → <code>.</code>)</td></tr>
+  <tr><td><span class="legend-chip" style="background:#15803d;color:#fff">S</span></td><td>xanh lá</td><td>Start – điểm bắt đầu</td></tr>
+  <tr><td><span class="legend-chip" style="background:#dc2626;color:#fff">E</span></td><td>đỏ</td><td>End – điểm đích</td></tr>
+  <tr><td><span class="legend-chip" style="background:#2563eb;color:#fff">@</span></td><td>xanh dương</td><td>Vị trí AI hiện tại (DFS head)</td></tr>
+  <tr><td><span class="legend-chip" style="background:#d97706;color:#fff">*</span></td><td>vàng</td><td>Ô đã xét (visited)</td></tr>
+</table>
+<blockquote>Bản gốc dùng <code>*</code>=hiện tại, <code>.</code>=đã đi, <code>x</code>=quay lui. Bản thực tế dùng <code>@</code>=hiện tại, <code>*</code>=đã xét, không có ký hiệu quay lui riêng.</blockquote>
+
+<h3>8.2. Các màn hình</h3>
+<table>
+  <tr><th>#</th><th>Màn hình (nhãn)</th><th>Nội dung</th></tr>
+  <tr><td>1</td><td><code>menu_loop</code></td><td>Tiêu đề + 6 lựa chọn</td></tr>
+  <tr><td>2</td><td><code>show_help</code></td><td>Bảng ký hiệu + mô tả DFS</td></tr>
+  <tr><td>3</td><td><code>choose_file</code></td><td>maze.txt / nhập tên / quay lại</td></tr>
+  <tr><td>4</td><td><code>file_input</code></td><td>Nhập tên file qua <code>MAIN_ReadLine</code></td></tr>
+  <tr><td>5</td><td><code>gen_menu</code></td><td>Chọn độ khó (bonus)</td></tr>
+  <tr><td>6</td><td><code>speed_menu</code>/<code>display_menu</code></td><td>Tốc độ + kiểu hiển thị</td></tr>
+  <tr><td>7</td><td>(giải mê cung)</td><td>Vẽ mê cung + legend + trạng thái + animation</td></tr>
+  <tr><td>8</td><td><code>show_result</code></td><td>Found/Not + thống kê + submenu</td></tr>
+  <tr><td>9</td><td><code>show_info</code></td><td>Thông tin nhóm/dự án</td></tr>
+  <tr><td>10</td><td><code>show_error</code></td><td>Thông báo theo errorCode</td></tr>
+</table>
+
+<h2 id="s9">9. Luồng xử lý tổng quát</h2>
+<div class="diagram"><pre class="mermaid">
+graph TD
+    Start(["Chay maze_solver.exe"]) --> Menu["menu_loop: hien thi 6 muc"]
+    Menu --> Input{"Phim 1-6"}
+    Input -->|1| Solve["do_solve_file: doc maze_file"]
+    Input -->|2| Help["show_help"] --> Menu
+    Input -->|3| ChooseFile["choose_file"]
+    Input -->|4| Info["show_info"] --> Menu
+    Input -->|5| Exit(["exit"])
+    Input -->|6| Gen["gen_menu chon do kho"]
+    Input -->|khac| Invalid["Bao loi"] --> Menu
+    ChooseFile -->|"1 maze.txt"| Solve
+    ChooseFile -->|"2 nhap ten"| ReadName["MAIN_ReadLine"] --> Solve
+    ChooseFile -->|3| Menu
+    Gen --> SpeedDisp["speed_menu + display_menu"] --> Generate["MAIN_GenerateRandomMaze"] --> Draw
+    Solve --> ReadFile["FILE_ReadMaze"]
+    ReadFile -->|"EAX=0"| Err["show_error"]
+    ReadFile -->|OK| Validate["MAIN_ValidateMaze"]
+    Validate -->|"EAX=0"| Err
+    Validate -->|OK| Draw["MAIN_DrawFullMaze + legend"]
+    Err --> Menu
+    Draw --> DFS["DFS_Solve: animation"]
+    DFS --> Result["show_result"]
+    Result -->|1| ChooseFile
+    Result -->|2| Menu
+    Result -->|3| Exit
+</pre></div>
+
+<h2 id="s10">10. Thiết kế Module (thủ tục thực tế)</h2>
+<h3>10.1. UI (<code>UI/ui.asm</code>)</h3>
+<table>
+  <tr><th>Thủ tục</th><th>Vai trò</th></tr>
+  <tr><td><code>UI_ClearScreen</code></td><td>Xóa màn hình, con trỏ về (0,0)</td></tr>
+  <tr><td><code>UI_ClearLine</code></td><td>Xóa 1 dòng tại <code>coord_y</code></td></tr>
+  <tr><td><code>UI_GotoXY</code></td><td>Đặt con trỏ theo <code>coord_x</code>, <code>coord_y</code></td></tr>
+  <tr><td><code>UI_DrawChar</code></td><td>In 1 ký tự (AL)</td></tr>
+  <tr><td><code>UI_DrawCell</code></td><td>In ký tự + <code>Sleep [ui_delay_ms]</code> (animation)</td></tr>
+  <tr><td><code>UI_PrintZ</code></td><td>In chuỗi ASCIIZ (EDX)</td></tr>
+  <tr><td><code>UI_WaitKey</code></td><td>Đọc 1 phím vào <code>buffer</code></td></tr>
+  <tr><td><code>UI_SetColor</code>/<code>UI_ResetColor</code></td><td>Đặt/khôi phục màu chữ</td></tr>
+  <tr><td><code>UI_PrintDec2</code>/<code>UI_PrintDec4</code></td><td>In số thập phân 2/4 chữ số</td></tr>
+</table>
+<h3>10.2. File I/O (<code>IO/file.asm</code>)</h3>
+<table>
+  <tr><th>Thủ tục</th><th>Vai trò</th></tr>
+  <tr><td><code>FILE_ReadMaze</code></td><td>Mở/đọc <code>maze_file</code>, bỏ BOM, tự đếm <code>cols</code>/<code>rows</code>, kiểm tra dòng đều, strip CR/LF, set errorCode 1/2/7. Trả EAX=1/0.</td></tr>
+</table>
+<h3>10.3. Core (<code>core/core.asm</code>)</h3>
+<table>
+  <tr><th>Thủ tục</th><th>Vai trò</th></tr>
+  <tr><td><code>MAIN_ValidateMaze</code></td><td>Kiểm tra kích thước, ký tự, S/E; lưu start/end; set errorCode 3/4/5/6</td></tr>
+  <tr><td><code>MAIN_FindStart</code></td><td>Tìm S, set <code>currX</code>/<code>currY</code></td></tr>
+  <tr><td><code>MAIN_DrawFullMaze</code></td><td>Vẽ toàn bộ mê cung + màu</td></tr>
+  <tr><td><code>MAIN_GetIndex</code></td><td>Tính địa chỉ ô = <code>maze + row*cols + col</code></td></tr>
+  <tr><td><code>MAIN_IsValid</code></td><td>Kiểm tra ô (trong biên + đi được)</td></tr>
+  <tr><td><code>DFS_Push</code>/<code>DFS_Pop</code></td><td>Thao tác software stack</td></tr>
+  <tr><td><code>DFS_Solve</code></td><td>Vòng lặp DFS + animation + đếm thống kê + set <code>dfs_result</code></td></tr>
+  <tr><td><code>DFS_UpdateStatus</code></td><td>In dòng trạng thái Step/X/Y</td></tr>
+  <tr><td><code>MAIN_RandByte</code></td><td>Sinh số ngẫu nhiên (LCG)</td></tr>
+  <tr><td><code>MAIN_GenerateRandomMaze</code></td><td>Sinh mê cung ngẫu nhiên có lời giải</td></tr>
+  <tr><td><code>DFS_CheckSolvable</code></td><td>Kiểm tra mê cung sinh ra có giải được</td></tr>
+</table>
+<h3>10.4. Tiện ích trong <code>main.asm</code></h3>
+<table>
+  <tr><th>Thủ tục</th><th>Vai trò</th></tr>
+  <tr><td><code>MAIN_ReadLine</code></td><td>Đọc tên file vào <code>input_name_buf</code>, cắt CR/LF</td></tr>
+  <tr><td><code>MAIN_StrCopyZ</code></td><td>Copy chuỗi tên file sang <code>maze_file</code></td></tr>
+  <tr><td><code>MAIN_SetDefaultMazeFile</code></td><td>Khôi phục <code>maze_file</code> = "maze.txt"</td></tr>
+  <tr><td><code>MAIN_PrintLegend</code></td><td>In chú thích ký hiệu</td></tr>
+</table>
+
+<h2 id="s11">11. Biến toàn cục chính</h2>
+<h3>11.1. <code>.data</code></h3>
+<table>
+  <tr><th>Biến</th><th>Kiểu</th><th>Ý nghĩa</th></tr>
+  <tr><td><code>cols</code>, <code>rows</code></td><td>dd</td><td>Số cột/dòng (tự xác định khi đọc file)</td></tr>
+  <tr><td><code>stack_cap</code></td><td>dd</td><td>Sức chứa software stack (1600)</td></tr>
+  <tr><td><code>ui_delay_ms</code></td><td>dd</td><td>Độ trễ animation</td></tr>
+  <tr><td><code>dfs_steps</code></td><td>dd</td><td>Số bước DFS</td></tr>
+  <tr><td><code>cells_examined</code></td><td>dd</td><td>Số ô đã xét</td></tr>
+  <tr><td><code>dfs_result</code></td><td>db</td><td>0=không tìm thấy, 1=tìm thấy</td></tr>
+  <tr><td><code>errorCode</code></td><td>dd</td><td>Mã lỗi 0–7</td></tr>
+  <tr><td><code>startX/startY</code></td><td>dd</td><td>Tọa độ S</td></tr>
+  <tr><td><code>endX/endY</code></td><td>dd</td><td>Tọa độ E</td></tr>
+  <tr><td><code>maze</code></td><td>1600 db</td><td>Mảng mê cung 1D</td></tr>
+  <tr><td><code>maze_work</code></td><td>1600 db</td><td>Bản sao kiểm tra giải được + buffer tạm</td></tr>
+  <tr><td><code>stack_x</code>, <code>stack_y</code></td><td>1600 db</td><td>Software stack DFS</td></tr>
+  <tr><td><code>maze_file</code></td><td>64 byte</td><td>Tên file (ghi được, mặc định "maze.txt")</td></tr>
+  <tr><td><code>input_name_buf</code></td><td>64 db</td><td>Buffer nhập tên file</td></tr>
+  <tr><td><code>coord_x</code>, <code>coord_y</code></td><td>dw</td><td>Tọa độ con trỏ console</td></tr>
+</table>
+<h3>11.2. <code>.bss</code></h3>
+<table>
+  <tr><th>Biến</th><th>Kiểu</th><th>Ý nghĩa</th></tr>
+  <tr><td><code>file_size</code></td><td>resd 1</td><td>Kích thước file</td></tr>
+  <tr><td><code>file_handle</code></td><td>resd 1</td><td>Handle file</td></tr>
+  <tr><td><code>bytes_read</code></td><td>resd 1</td><td>Số byte đã đọc</td></tr>
+</table>
+<blockquote>Bản gốc đề nghị <code>rows/cols/errorCode</code> kiểu DW; bản thực tế dùng <b>dd</b> để khớp <code>mul dword [cols]</code>.</blockquote>
+
+<h2 id="s12">12. Khác biệt so với đặc tả gốc</h2>
+<table>
+  <tr><th>Hạng mục</th><th>Bản gốc</th><th>Thực tế</th><th>Lý do</th></tr>
+  <tr><td>Ký hiệu hiện tại/quay lui</td><td><code>*</code> / <code>x</code></td><td><code>@</code> hiện tại, <code>*</code> đã xét, không có quay lui</td><td>Giữ scheme màu sẵn có</td></tr>
+  <tr><td>Thống kê</td><td>bước+ô+quay lui+thời gian</td><td>bước+ô+found/not</td><td>Đơn giản hóa (gốc cho phép)</td></tr>
+  <tr><td>Giới hạn kích thước</td><td>&gt; 20×20 lỗi</td><td><code>cols*rows ≤ 1600</code></td><td>Theo buffer <code>maze times 1600</code></td></tr>
+  <tr><td>Kiểu rows/cols/errorCode</td><td>DW</td><td>DWORD (dd)</td><td>Khớp phép nhân tính chỉ số</td></tr>
+  <tr><td>Khung viền <code>+===+</code></td><td>mockup đầy đủ</td><td>tiêu đề text</td><td>Hạn chế in khung trong console</td></tr>
+  <tr><td>Sinh mê cung ngẫu nhiên</td><td>không có</td><td>có (bonus)</td><td>Tận dụng code đã viết</td></tr>
+  <tr><td>Màn kiểm tra <code>[OK]</code> từng dòng</td><td>liệt kê từng bước</td><td>gộp 1 thông báo</td><td>Gọn giao diện</td></tr>
+</table>
+
+<h2 id="s13">13. Build &amp; chạy</h2>
+<pre><code>cd "asm-maze-solver-win32-nasm"
+.\build.bat          # nasm -f win32 + gcc -m32
+.\maze_solver.exe</code></pre>
+<p>Yêu cầu: NASM ≥ 2.15, MinGW-w64 (<code>gcc -m32</code>) trên PATH. File mê cung phải dùng line ending <b>LF</b> (xem README).</p>
+
+<h2 id="s14">14. Sơ đồ bổ sung (Mermaid)</h2>
+
+<h3>14.1. Kiến trúc module &amp; phụ thuộc</h3>
+<div class="diagram"><pre class="mermaid">
+graph TD
+    Main["main.asm<br/>_main + menu + .data"]
+    UI["UI/ui.asm<br/>render console"]
+    IO["IO/file.asm<br/>doc file"]
+    Core["core/core.asm<br/>DFS + validate + gen"]
+    Mem[("maze buffer<br/>cols/rows/start/end")]
+    Win["Kernel32<br/>Console + File API"]
+    Main -->|"%include"| UI
+    Main -->|"%include"| IO
+    Main -->|"%include"| Core
+    Core -->|"goi ve cell"| UI
+    IO -->|"ghi maze, cols, rows"| Mem
+    Core -->|"doc/ghi maze, V"| Mem
+    Main -->|"doc trang thai"| Mem
+    UI -->|"WinAPI stdcall"| Win
+    IO -->|"WinAPI stdcall"| Win
+</pre></div>
+
+<h3>14.2. Trình tự đọc &amp; kiểm tra file</h3>
+<div class="diagram"><pre class="mermaid">
+sequenceDiagram
+    participant M as main (do_solve_file)
+    participant F as FILE_ReadMaze
+    participant W as WinAPI
+    participant V as MAIN_ValidateMaze
+    M->>F: call FILE_ReadMaze
+    F->>W: CreateFileA / ReadFile / CloseHandle
+    W-->>F: noi dung file
+    F->>F: bo BOM, dem cols/rows, check ragged, strip CRLF
+    F-->>M: EAX (1/0) + errorCode
+    alt EAX = 0
+        M->>M: show_error (err_1/2/7)
+    else EAX = 1
+        M->>V: call MAIN_ValidateMaze
+        V->>V: check size, ky tu, S, E; luu start/end
+        V-->>M: EAX (1/0) + errorCode
+        alt EAX = 0
+            M->>M: show_error (err_3/4/5/6)
+        else EAX = 1
+            M->>M: ve me cung + chay DFS
+        end
+    end
+</pre></div>
+
+<h3>14.3. Lưu đồ thuật toán DFS</h3>
+<div class="diagram"><pre class="mermaid">
+flowchart TD
+    A["Bat dau DFS_Solve"] --> B["Reset stack, dfs_steps,<br/>cells_examined, dfs_result<br/>Push o S"]
+    B --> C{"Stack rong?"}
+    C -->|"Co"| Z["Ket thuc<br/>dfs_result = 0"]
+    C -->|"Khong"| D["Pop o hien tai"]
+    D --> E{"O = E?"}
+    E -->|"Co"| F["dfs_result = 1<br/>Ve E, xoa stack, dung"]
+    E -->|"Khong"| G{"Da tham (V)<br/>hoac tuong (1)?"}
+    G -->|"Co"| C
+    G -->|"Khong"| H["Danh dau V<br/>cells_examined++<br/>dfs_steps++, ve @ + delay"]
+    H --> I["Thu 4 huong:<br/>phai, xuong, trai, len"]
+    I --> J["Push o hop le vao stack"]
+    J --> C
+</pre></div>
+
+<h3>14.4. Máy trạng thái điều hướng menu</h3>
+<div class="diagram"><pre class="mermaid">
+stateDiagram-v2
+    [*] --> Menu
+    Menu --> Help: phim 2
+    Menu --> ChooseFile: phim 3
+    Menu --> Info: phim 4
+    Menu --> GenMenu: phim 6
+    Menu --> Solve: phim 1
+    Menu --> [*]: phim 5 (Thoat)
+    Help --> Menu: bam phim
+    Info --> Menu: bam phim
+    ChooseFile --> Solve: 1 / 2 (nhap ten)
+    ChooseFile --> Menu: 3
+    GenMenu --> Solve: chon do kho
+    Solve --> Result
+    Result --> ChooseFile: 1 (giai khac)
+    Result --> Menu: 2
+    Result --> [*]: 3 (Thoat)
+</pre></div>
+
+<h3>14.5. Cây quyết định mã lỗi (errorCode)</h3>
+<div class="diagram"><pre class="mermaid">
+flowchart TD
+    S["Doc + kiem tra file"] --> E1{"Mo duoc file?"}
+    E1 -->|"Khong"| C1["errorCode = 1<br/>Khong tim thay file"]
+    E1 -->|"Co"| E2{"file_size > 0?"}
+    E2 -->|"Khong"| C2["errorCode = 2<br/>File rong"]
+    E2 -->|"Co"| E7{"Cac dong deu?"}
+    E7 -->|"Khong"| C7["errorCode = 7<br/>Dong khong deu"]
+    E7 -->|"Co"| E6{"cols*rows <= 1600?"}
+    E6 -->|"Khong"| C6["errorCode = 6<br/>Vuot kich thuoc"]
+    E6 -->|"Co"| E3{"Ky tu hop le?"}
+    E3 -->|"Khong"| C3["errorCode = 3<br/>Sai dinh dang"]
+    E3 -->|"Co"| E4{"Co S?"}
+    E4 -->|"Khong"| C4["errorCode = 4<br/>Thieu S"]
+    E4 -->|"Co"| E5{"Co E?"}
+    E5 -->|"Khong"| C5["errorCode = 5<br/>Thieu E"]
+    E5 -->|"Co"| OK["errorCode = 0<br/>Chay DFS"]
+</pre></div>
+
+<h3>14.6. Ánh xạ ký tự file ↔ hiển thị</h3>
+<div class="diagram"><pre class="mermaid">
+flowchart LR
+    F1["'1' trong file"] --> D1["# xam (tuong)"]
+    F0["'0' trong file"] --> D0[". trang (duong)"]
+    FS["'S' trong file"] --> DS["S xanh la"]
+    FE["'E' trong file"] --> DE["E do"]
+    RUN["Khi DFS chay"] --> DA["@ xanh duong (hien tai)"]
+    RUN --> DV["* vang (da xet)"]
+</pre></div>
+
+<footer>
+  ASM Maze Solver — NASM Win32 · Đặc tả kỹ thuật v2 (theo hệ thống thực tế) · Tạo cho hồ sơ trao đổi.
+</footer>
+
+</div><!-- /.page -->
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'neutral',
+    flowchart: { useMaxWidth: true, htmlLabels: true },
+    sequence: { useMaxWidth: true },
+    securityLevel: 'loose'
+  });
+</script>
+</body>
+</html>

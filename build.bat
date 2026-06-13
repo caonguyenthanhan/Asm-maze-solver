@@ -2,7 +2,6 @@
 @echo off
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
-set "PATH=C:\msys64\mingw32\bin;%PATH%"
 echo Building maze_solver.exe...
 nasm -f win32 main.asm -o main.o
 if errorlevel 1 (
